@@ -508,9 +508,9 @@ function updatePlayer(dt) {
     const len = Math.hypot(fx, fz); fx /= len; fz /= len;
     const speed = (k.ShiftLeft || k.ShiftRight) ? 3.2 : 2.2;
     const sin = Math.sin(player.yaw), cos = Math.cos(player.yaw);
-    // camera forward (yaw=0 looks down -z)
-    const dx = (fx * cos - fz * sin) * speed * dt;
-    const dz = (fx * sin + fz * cos) * speed * dt;
+    // yaw=0 looks down -z: forward = (-sin, -cos), right = (cos, -sin)
+    const dx = (fx * cos + fz * sin) * speed * dt;
+    const dz = (fz * cos - fx * sin) * speed * dt;
     moveWithCollision(dx, dz);
   }
   camera.position.copy(player.pos);
@@ -631,9 +631,12 @@ document.addEventListener('mousemove', e => {
   player.yaw -= e.movementX * 0.0022;
   player.pitch = Math.max(-1.4, Math.min(1.4, player.pitch - e.movementY * 0.0022));
 });
+const MOVE_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'];
 window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
   player.keys[e.code] = true;
-  if (e.code === 'Space' && state === 'playing') { e.preventDefault(); spray(); }
+  if (state === 'playing' && MOVE_KEYS.includes(e.code)) e.preventDefault(); // stop the page scrolling
+  if (e.code === 'Space' && state === 'playing' && !e.repeat) spray();
 });
 window.addEventListener('keyup', e => { player.keys[e.code] = false; });
 window.addEventListener('blur', () => { player.keys = {}; });
