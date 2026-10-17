@@ -95,7 +95,7 @@
   <div class="pill">Bugs left: <b id="hudBugs">3</b></div>
   <div class="pill">Time: <b id="hudTime">0.0s</b></div>
 </div>
-<div id="hint" class="hidden">Move the mouse to look · WASD or arrows to move · Click or Space to spray · Esc to pause</div>
+<div id="hint" class="hidden">Mouse or arrow keys to look · WASD to move · Click or Space to spray · Esc to pause</div>
 
 <!-- Start screen -->
 <div class="overlay" id="startScreen">
@@ -104,7 +104,7 @@
     <p class="lead">Two flies and a cockroach have moved into the lounge room. You've got one can of Mortein.</p>
     <div class="prize">🎟️ Get all three in 10 sprays or fewer to win a ticket to the Vertacy Conference, Port Stephens</div>
     <ul class="rules">
-      <li>Move the mouse or trackpad to look around. The dot in the middle is where the spray goes.</li>
+      <li>Move the mouse to look around. The dot in the middle is where the spray goes. On a trackpad, use the <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> keys to look instead: laptops ignore the trackpad while you hold a key.</li>
       <li><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> to walk. The bugs run and fly away when you get close, so corner them.</li>
       <li>Click (or press <kbd>Space</kbd>) to spray. The spray reaches about two metres in a narrow cone.</li>
       <li>You get <b>10 sprays</b> for all three bugs. Fewer sprays and a faster time put you higher on the leaderboard.</li>
@@ -501,11 +501,18 @@ const player = { pos: new THREE.Vector3(0, EYE, 1.2), yaw: Math.PI, pitch: 0, ke
 function resetPlayer() { player.pos.set(0, EYE, 1.2); player.yaw = Math.PI; player.pitch = 0; player.keys = {}; }
 function updatePlayer(dt) {
   const k = player.keys;
+  // arrow keys turn the camera, so trackpad users can look while walking
+  // (laptops ignore the trackpad for a moment after every key press)
+  const TURN = 2.0, TILT = 1.4;
+  if (k.ArrowLeft) player.yaw += TURN * dt;
+  if (k.ArrowRight) player.yaw -= TURN * dt;
+  if (k.ArrowUp) player.pitch = Math.min(1.4, player.pitch + TILT * dt);
+  if (k.ArrowDown) player.pitch = Math.max(-1.4, player.pitch - TILT * dt);
   let fx = 0, fz = 0;
-  if (k.KeyW || k.ArrowUp) fz -= 1;
-  if (k.KeyS || k.ArrowDown) fz += 1;
-  if (k.KeyA || k.ArrowLeft) fx -= 1;
-  if (k.KeyD || k.ArrowRight) fx += 1;
+  if (k.KeyW) fz -= 1;
+  if (k.KeyS) fz += 1;
+  if (k.KeyA) fx -= 1;
+  if (k.KeyD) fx += 1;
   if (fx || fz) {
     const len = Math.hypot(fx, fz); fx /= len; fz /= len;
     const speed = (k.ShiftLeft || k.ShiftRight) ? 3.2 : 2.2;

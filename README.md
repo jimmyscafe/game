@@ -6,8 +6,8 @@ A single-file 3D browser game. Two flies and a cockroach are loose in a small lo
 
 Open `index.html` in any modern browser, or visit the GitHub Pages link for this repository. You need a keyboard and a mouse or trackpad, and an internet connection (the 3D engine, three.js, loads from a CDN).
 
-- Click the game to lock the mouse, then move the mouse or trackpad to look around. The white dot in the middle is where the spray goes.
-- WASD (or arrow keys) to walk, Shift to run, Esc to pause.
+- Move the mouse to look around, or use the arrow keys. The white dot in the middle is where the spray goes. Laptops ignore the trackpad while a key is held, so trackpad users should look with the arrow keys while walking.
+- WASD to walk, Shift to run, Esc to pause.
 - Click or press Space to spray. The spray reaches about two metres in a narrow cone.
 - The bugs flee when you get close: flies climb away, the cockroach scurries across the floor. Corner them.
 - You have 10 sprays for all three bugs. Get them all and you win; run out and you miss out.
