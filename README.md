@@ -1,14 +1,16 @@
 # Spray the Fly
 
-A single-file browser game: a fly buzzes around the screen, you chase it with a can of Mortein using your mouse or trackpad, and you click to spray. Get the fly in 10 sprays or fewer to win a ticket to the Vertacy Conference, Port Stephens. Winners can put their name on an online leaderboard.
+A single-file 3D browser game. Two flies and a cockroach are loose in a small lounge room (couch, TV on a stand, a plant in the corner). You walk around in first person with a can of Mortein and spray them. Get all three in 10 sprays or fewer to win a ticket to the Vertacy Conference, Port Stephens. Winners can put their name on an online leaderboard.
 
 ## Play
 
-Open `index.html` in any modern browser, or visit the GitHub Pages link for this repository.
+Open `index.html` in any modern browser, or visit the GitHub Pages link for this repository. You need a keyboard and a mouse or trackpad, and an internet connection (the 3D engine, three.js, loads from a CDN).
 
-- Move the mouse or trackpad to chase the fly with the can.
-- Click, tap, or press Space to spray. The spray hits only the small ring at the nozzle.
-- You have 10 sprays. Hit the fly and you win; miss all 10 and you miss out.
+- Click the game to lock the mouse, then move the mouse or trackpad to look around. The white dot in the middle is where the spray goes.
+- WASD (or arrow keys) to walk, Shift to run, Esc to pause.
+- Click or press Space to spray. The spray reaches about two metres in a narrow cone.
+- The bugs flee when you get close: flies climb away, the cockroach scurries across the floor. Corner them.
+- You have 10 sprays for all three bugs. Get them all and you win; run out and you miss out.
 - The leaderboard ranks winners by fewest sprays, then fastest time.
 
 ## Leaderboard
@@ -51,5 +53,7 @@ Then set `SUPABASE_URL` and `SUPABASE_KEY` near the top of the script in `index.
 Everything is in `index.html`. Useful knobs near the top of the script:
 
 - `MAX_SPRAYS`: how many sprays a player gets (default 10).
-- `HIT_RADIUS`: how close the nozzle has to be to the fly (default 34 px). Bigger is easier.
-- In `updateFly`, the base speed (`420`) and dart speed (`1100`) control how hard the fly is to catch.
+- `SPRAY_RANGE` and `SPRAY_HALF_ANGLE`: how far the spray reaches (2.2 m) and how wide the cone is (9°). Bigger is easier.
+- In `updateBug`, `base` and `dartSpeed` set how fast flies and the cockroach move, and `fleeR` how close you can get before they run.
+- `ROOM` sets the room size; the furniture positions follow from it.
+- `resetBugs` decides how many flies and cockroaches spawn.
