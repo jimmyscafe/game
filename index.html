@@ -16,6 +16,7 @@
     color: var(--ink); background: #111; overflow: hidden; user-select: none; -webkit-user-select: none;
   }
   #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  body.playing #game { cursor: none; }
 
   #crosshair {
     position: fixed; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px;
@@ -94,7 +95,7 @@
   <div class="pill">Bugs left: <b id="hudBugs">3</b></div>
   <div class="pill">Time: <b id="hudTime">0.0s</b></div>
 </div>
-<div id="hint" class="hidden">Click to look around · WASD to move · Click to spray · Esc to pause</div>
+<div id="hint" class="hidden">Move the mouse to look · WASD or arrows to move · Click or Space to spray · Esc to pause</div>
 
 <!-- Start screen -->
 <div class="overlay" id="startScreen">
@@ -209,6 +210,7 @@ const screens = ['startScreen', 'pauseScreen', 'winScreen', 'loseScreen', 'board
 function show(id) {
   screens.forEach(s => $(s).classList.toggle('hidden', s !== id));
   const inGame = id === null;
+  document.body.classList.toggle('playing', inGame);
   $('hud').classList.toggle('hidden', !inGame && id !== 'pauseScreen');
   $('crosshair').classList.toggle('hidden', !inGame);
   $('hint').classList.toggle('hidden', !inGame);
@@ -601,10 +603,10 @@ function startGame() {
   sprays = 0; elapsed = 0; lastSprayAt = 0; startTime = performance.now();
   state = 'playing';
   show(null); updateHud();
-  canvas.requestPointerLock && canvas.requestPointerLock();
+  tryLock();
 }
 function showWin() {
-  document.exitPointerLock && document.exitPointerLock();
+  lockWanted = false; document.exitPointerLock && document.exitPointerLock();
   $('winSprays').textContent = sprays;
   $('winTime').textContent = (elapsed / 1000).toFixed(1) + 's';
   $('submitErr').classList.add('hidden'); $('submitBtn').disabled = false;
@@ -612,29 +614,53 @@ function showWin() {
   show('winScreen'); $('nameInput').focus();
 }
 function showLose(left) {
-  document.exitPointerLock && document.exitPointerLock();
+  lockWanted = false; document.exitPointerLock && document.exitPointerLock();
   $('loseText').textContent = `Ten sprays gone and ${left === 1 ? 'one bug is' : left + ' bugs are'} still in the room. No ticket this time.`;
   show('loseScreen');
 }
 
 // ---------- Input ----------
+// Mouse look works with or without pointer lock: the browser reports
+// movementX/Y either way. Pointer lock just keeps the cursor from leaving
+// the window, so we ask for it but never depend on it.
+let lockWanted = false;
+function tryLock() {
+  lockWanted = true;
+  if (!canvas.requestPointerLock || document.pointerLockElement === canvas) return;
+  try {
+    const p = canvas.requestPointerLock({ unadjustedMovement: true });
+    if (p && p.catch) p.catch(() => { try { canvas.requestPointerLock(); } catch (e) {} });
+  } catch (e) { try { canvas.requestPointerLock(); } catch (err) {} }
+}
 canvas.addEventListener('click', () => {
   if (state !== 'playing') return;
-  if (document.pointerLockElement !== canvas) { canvas.requestPointerLock(); return; }
+  if (document.pointerLockElement !== canvas) tryLock();
   spray();
 });
+canvas.addEventListener('contextmenu', e => e.preventDefault());
 document.addEventListener('pointerlockchange', () => {
-  if (document.pointerLockElement !== canvas && state === 'playing') show('pauseScreen');
+  // Esc releases the lock: treat that as pause.
+  if (document.pointerLockElement !== canvas && lockWanted && state === 'playing') pause();
 });
+document.addEventListener('pointerlockerror', () => { /* no lock available: play unlocked */ });
 document.addEventListener('mousemove', e => {
-  if (document.pointerLockElement !== canvas || state !== 'playing') return;
-  player.yaw -= e.movementX * 0.0022;
-  player.pitch = Math.max(-1.4, Math.min(1.4, player.pitch - e.movementY * 0.0022));
+  if (state !== 'playing') return;
+  if (document.pointerLockElement !== canvas && e.target !== canvas) return;
+  const mx = e.movementX || 0, my = e.movementY || 0;
+  if (Math.abs(mx) > 300 || Math.abs(my) > 300) return; // ignore the jump when the lock engages
+  player.yaw -= mx * 0.0022;
+  player.pitch = Math.max(-1.4, Math.min(1.4, player.pitch - my * 0.0022));
 });
+function pause() {
+  lockWanted = false;
+  show('pauseScreen');
+  if (document.pointerLockElement === canvas) document.exitPointerLock();
+}
 const MOVE_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'];
 window.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
   player.keys[e.code] = true;
+  if (e.code === 'Escape' && state === 'playing') pause();
   if (state === 'playing' && MOVE_KEYS.includes(e.code)) e.preventDefault(); // stop the page scrolling
   if (e.code === 'Space' && state === 'playing' && !e.repeat) spray();
 });
@@ -644,8 +670,8 @@ window.addEventListener('blur', () => { player.keys = {}; });
 $('startBtn').onclick = startGame;
 $('retryBtn').onclick = startGame;
 $('playAgainBtn').onclick = startGame;
-$('resumeBtn').onclick = () => { show(null); canvas.requestPointerLock(); };
-$('quitBtn').onclick = () => { state = 'idle'; show('startScreen'); };
+$('resumeBtn').onclick = () => { show(null); tryLock(); };
+$('quitBtn').onclick = () => { state = 'idle'; lockWanted = false; show('startScreen'); };
 $('skipBtn').onclick = openBoard;
 $('boardBtn').onclick = openBoard;
 $('loseBoardBtn').onclick = openBoard;
