@@ -1,0 +1,531 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Spray the Fly</title>
+<style>
+  :root {
+    --bg: #fff7e6;
+    --bg2: #ffe9b8;
+    --ink: #2b1d14;
+    --muted: #7a6a5a;
+    --red: #d7261e;
+    --red-dark: #a51b15;
+    --yellow: #ffd23f;
+    --card: #ffffff;
+    --shadow: 0 10px 30px rgba(60, 30, 0, .18);
+    --green: #1f9d55;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font-family: "Segoe UI", system-ui, -apple-system, Roboto, sans-serif;
+    color: var(--ink);
+    background: radial-gradient(1200px 700px at 50% 20%, var(--bg2), var(--bg));
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: none; touch-action: none; }
+
+  .hud {
+    position: fixed; top: 12px; left: 12px; right: 12px;
+    display: flex; justify-content: space-between; align-items: center;
+    pointer-events: none; font-weight: 700; font-size: 18px;
+  }
+  .pill {
+    background: rgba(255,255,255,.85); padding: 8px 14px; border-radius: 999px;
+    box-shadow: 0 3px 10px rgba(0,0,0,.12);
+  }
+  .pill b { color: var(--red); }
+  .hidden { display: none !important; }
+
+  .overlay {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    padding: 16px; background: rgba(43, 29, 20, .35); backdrop-filter: blur(3px);
+  }
+  .card {
+    background: var(--card); border-radius: 20px; box-shadow: var(--shadow);
+    padding: 28px 26px; width: min(520px, 100%); max-height: 92vh; overflow: auto; text-align: center;
+  }
+  h1 { margin: 0 0 6px; font-size: 34px; letter-spacing: -.5px; }
+  h1 span { color: var(--red); }
+  h2 { margin: 0 0 8px; font-size: 26px; }
+  p { margin: 8px 0; line-height: 1.45; color: var(--muted); }
+  p.lead { color: var(--ink); font-size: 17px; }
+  .prize {
+    background: var(--yellow); border-radius: 12px; padding: 10px 14px; margin: 14px 0;
+    font-weight: 800; color: var(--ink);
+  }
+  .rules { text-align: left; margin: 12px auto; padding-left: 22px; color: var(--muted); }
+  .rules li { margin: 4px 0; }
+  button {
+    font: inherit; font-weight: 800; font-size: 18px; color: #fff; background: var(--red);
+    border: 0; border-radius: 999px; padding: 14px 30px; cursor: pointer; margin-top: 10px;
+    box-shadow: 0 6px 0 var(--red-dark); transition: transform .05s;
+  }
+  button:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--red-dark); }
+  button.secondary { background: #eee; color: var(--ink); box-shadow: 0 6px 0 #ccc; }
+  button.secondary:active { box-shadow: 0 2px 0 #ccc; }
+  button:disabled { opacity: .6; cursor: default; }
+  input {
+    font: inherit; font-size: 18px; padding: 12px 14px; border-radius: 12px;
+    border: 2px solid #ddd; width: 100%; max-width: 320px; margin-top: 8px; text-align: center;
+  }
+  input:focus { outline: none; border-color: var(--red); }
+  .ticket {
+    margin: 14px auto; background: repeating-linear-gradient(135deg, #fff3c4 0 10px, #ffe9a0 10px 20px);
+    border: 3px dashed var(--red); border-radius: 14px; padding: 14px; max-width: 380px;
+  }
+  .ticket .big { font-size: 22px; font-weight: 900; color: var(--red); }
+  .stats { display: flex; gap: 12px; justify-content: center; margin: 10px 0; }
+  .stat { background: #f6f1ea; border-radius: 12px; padding: 10px 16px; min-width: 110px; }
+  .stat .n { font-size: 26px; font-weight: 900; }
+  .stat .l { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { padding: 8px 6px; text-align: left; border-bottom: 1px solid #eee; }
+  th { font-size: 12px; text-transform: uppercase; color: var(--muted); letter-spacing: .5px; }
+  td.r, th.r { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.me td { background: #fff3c4; font-weight: 700; }
+  .rank { color: var(--muted); width: 36px; }
+  .note { font-size: 13px; }
+  .err { color: var(--red); font-weight: 700; }
+  .row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<div class="hud hidden" id="hud">
+  <div class="pill">Sprays left: <b id="hudSprays">10</b></div>
+  <div class="pill">Time: <b id="hudTime">0.0s</b></div>
+</div>
+
+<!-- Start screen -->
+<div class="overlay" id="startScreen">
+  <div class="card">
+    <h1>Spray the <span>Fly</span></h1>
+    <p class="lead">There's a fly loose in the office and you've got one can of Mortein.</p>
+    <div class="prize">🎟️ Get him in 10 sprays or fewer to win a ticket to the Vertacy Conference, Port Stephens</div>
+    <ul class="rules">
+      <li>Move your mouse or trackpad to chase the fly with the can.</li>
+      <li>Click (or tap) to spray. The spray only hits a small target in front of the nozzle.</li>
+      <li>You get <b>10 sprays</b>. Hit him and you win. Miss all 10 and you miss out.</li>
+      <li>Fewer sprays and a faster time put you higher on the leaderboard.</li>
+    </ul>
+    <button id="startBtn">Start</button>
+    <button class="secondary" id="boardBtn">Leaderboard</button>
+  </div>
+</div>
+
+<!-- Win screen -->
+<div class="overlay hidden" id="winScreen">
+  <div class="card">
+    <h2>🎉 Got him!</h2>
+    <div class="ticket">
+      <div class="big">YOU'VE WON A TICKET</div>
+      <div>Vertacy Conference · Port Stephens</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="n" id="winSprays">1</div><div class="l">sprays</div></div>
+      <div class="stat"><div class="n" id="winTime">0.0s</div><div class="l">time</div></div>
+    </div>
+    <p>Add your name to the leaderboard:</p>
+    <form id="nameForm">
+      <input id="nameInput" maxlength="20" placeholder="Your name" autocomplete="off" required>
+      <div class="row">
+        <button type="submit" id="submitBtn">Submit score</button>
+        <button type="button" class="secondary" id="skipBtn">Skip</button>
+      </div>
+    </form>
+    <p class="err hidden" id="submitErr"></p>
+  </div>
+</div>
+
+<!-- Lose screen -->
+<div class="overlay hidden" id="loseScreen">
+  <div class="card">
+    <h2>😩 He got away</h2>
+    <p class="lead">Ten sprays and the fly is still buzzing. No ticket this time.</p>
+    <div class="stats">
+      <div class="stat"><div class="n">10</div><div class="l">sprays used</div></div>
+      <div class="stat"><div class="n" id="loseClosest">0</div><div class="l">closest miss (px)</div></div>
+    </div>
+    <div class="row">
+      <button id="retryBtn">Try again</button>
+      <button class="secondary" id="loseBoardBtn">Leaderboard</button>
+    </div>
+  </div>
+</div>
+
+<!-- Leaderboard -->
+<div class="overlay hidden" id="boardScreen">
+  <div class="card">
+    <h2>🏆 Leaderboard</h2>
+    <p class="note">Fewest sprays wins. Ties go to the fastest time.</p>
+    <div id="boardBody"><p>Loading…</p></div>
+    <div class="row">
+      <button id="playAgainBtn">Play</button>
+      <button class="secondary" id="refreshBtn">Refresh</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Leaderboard backend (Supabase) ----------
+// The anon/publishable key is safe to expose: the database's row-level
+// security only lets players read scores and insert new ones.
+const SUPABASE_URL = 'https://pfuqcbwcghhafrqwtpsa.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_7x8BPTrstbqE2_d75kO58g_exqjqLgi';
+const MAX_SPRAYS = 10;
+
+// A single integer stores both sprays and time, so lower is better:
+// score = sprays * 100000 + milliseconds (capped at 99.999s).
+const encodeScore = (sprays, ms) => sprays * 100000 + Math.min(Math.round(ms), 99999);
+const decodeScore = s => ({ sprays: Math.floor(s / 100000), ms: s % 100000 });
+
+async function sbFetch(path, opts = {}) {
+  const res = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
+    ...opts,
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      ...(opts.headers || {}),
+    },
+  });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  return res;
+}
+const fetchTop = async () =>
+  (await sbFetch('scores?select=id,name,score&order=score.asc&limit=20')).json();
+const submitScore = (name, score) =>
+  sbFetch('scores', {
+    method: 'POST',
+    headers: { Prefer: 'return=minimal' },
+    body: JSON.stringify({ name, score }),
+  });
+
+// ---------- DOM ----------
+const $ = id => document.getElementById(id);
+const canvas = $('game'), ctx = canvas.getContext('2d');
+const screens = ['startScreen', 'winScreen', 'loseScreen', 'boardScreen'];
+function show(id) {
+  screens.forEach(s => $(s).classList.toggle('hidden', s !== id));
+  $('hud').classList.toggle('hidden', id !== null);
+}
+
+// ---------- Game state ----------
+let W = 0, H = 0, dpr = 1;
+let state = 'idle'; // idle | playing | won | lost
+let mouse = { x: -999, y: -999 };
+let fly, sprays, startTime, elapsed = 0, closestMiss = Infinity, puffs = [], lastSprayAt = 0;
+let lastSubmittedId = null;
+
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+window.addEventListener('resize', resize);
+resize();
+
+function newFly() {
+  return {
+    x: W / 2, y: H / 3, vx: 0, vy: 0,
+    tx: W / 2, ty: H / 2,     // current wander target
+    retarget: 0,               // time until the next target
+    dart: 0,                   // time left in a fast dart
+    wing: 0, angle: 0, alive: true, deadT: 0,
+  };
+}
+
+function startGame() {
+  fly = newFly();
+  sprays = 0; elapsed = 0; closestMiss = Infinity; puffs = []; lastSprayAt = 0;
+  startTime = performance.now();
+  state = 'playing';
+  show(null);
+  updateHud();
+}
+
+function updateHud() {
+  $('hudSprays').textContent = MAX_SPRAYS - sprays;
+  $('hudTime').textContent = (elapsed / 1000).toFixed(1) + 's';
+}
+
+// The fly wanders between random targets, with occasional fast darts
+// and a nervous jitter. It also steers away from the can when it's near.
+function updateFly(dt) {
+  const f = fly;
+  f.wing += dt * 60;
+  if (!f.alive) { f.deadT += dt; f.vy += 1800 * dt; f.y += f.vy * dt; f.x += f.vx * dt; return; }
+
+  f.retarget -= dt;
+  if (f.retarget <= 0) {
+    const m = 60;
+    f.tx = m + Math.random() * (W - 2 * m);
+    f.ty = m + Math.random() * (H - 2 * m);
+    f.retarget = 0.4 + Math.random() * 1.1;
+    if (Math.random() < 0.3) f.dart = 0.25;
+  }
+  f.dart = Math.max(0, f.dart - dt);
+
+  const speed = (f.dart > 0 ? 1100 : 420) + sprays * 25; // a little faster after each miss
+  const dx = f.tx - f.x, dy = f.ty - f.y, d = Math.hypot(dx, dy) || 1;
+  let ax = (dx / d) * speed * 4, ay = (dy / d) * speed * 4;
+
+  // flee the nozzle
+  const mx = mouse.x - f.x, my = mouse.y - f.y, md = Math.hypot(mx, my);
+  if (md < 140) { const k = (140 - md) / 140 * 3500; ax -= (mx / md) * k; ay -= (my / md) * k; }
+
+  // jitter
+  ax += (Math.random() - 0.5) * 2500; ay += (Math.random() - 0.5) * 2500;
+
+  f.vx += ax * dt; f.vy += ay * dt;
+  const vmax = speed * 1.3, v = Math.hypot(f.vx, f.vy);
+  if (v > vmax) { f.vx *= vmax / v; f.vy *= vmax / v; }
+  f.vx *= 1 - 2.5 * dt; f.vy *= 1 - 2.5 * dt;
+  f.x += f.vx * dt; f.y += f.vy * dt;
+
+  // keep on screen
+  const pad = 30;
+  if (f.x < pad) { f.x = pad; f.vx = Math.abs(f.vx); }
+  if (f.x > W - pad) { f.x = W - pad; f.vx = -Math.abs(f.vx); }
+  if (f.y < pad) { f.y = pad; f.vy = Math.abs(f.vy); }
+  if (f.y > H - pad) { f.y = H - pad; f.vy = -Math.abs(f.vy); }
+  f.angle = Math.atan2(f.vy, f.vx);
+}
+
+const HIT_RADIUS = 34; // how close the nozzle must be to the fly's centre
+function spray(x, y) {
+  if (state !== 'playing') return;
+  const now = performance.now();
+  if (now - lastSprayAt < 350) return; // one spray at a time
+  lastSprayAt = now;
+  sprays++;
+  puffs.push({ x, y, t: 0 });
+  const dist = Math.hypot(fly.x - x, fly.y - y);
+  if (dist <= HIT_RADIUS) {
+    fly.alive = false; fly.vx = (Math.random() - 0.5) * 200; fly.vy = -250;
+    state = 'won';
+    updateHud();
+    setTimeout(showWin, 900);
+    return;
+  }
+  closestMiss = Math.min(closestMiss, dist);
+  updateHud();
+  if (sprays >= MAX_SPRAYS) {
+    state = 'lost';
+    setTimeout(showLose, 700);
+  }
+}
+
+function showWin() {
+  $('winSprays').textContent = sprays;
+  $('winTime').textContent = (elapsed / 1000).toFixed(1) + 's';
+  $('submitErr').classList.add('hidden');
+  $('submitBtn').disabled = false;
+  try { $('nameInput').value = localStorage.getItem('flyName') || ''; } catch (e) {}
+  show('winScreen');
+  $('nameInput').focus();
+}
+function showLose() {
+  $('loseClosest').textContent = Math.round(closestMiss - HIT_RADIUS);
+  show('loseScreen');
+}
+
+// ---------- Drawing ----------
+function drawFly(f) {
+  ctx.save();
+  ctx.translate(f.x, f.y);
+  if (!f.alive) ctx.rotate(f.deadT * 6);
+  else ctx.rotate(Math.sin(f.wing * 0.05) * 0.12);
+  const s = 1;
+
+  // wings
+  const flap = f.alive ? Math.sin(f.wing) * 0.7 : 0.4;
+  ctx.fillStyle = 'rgba(200,220,255,.65)';
+  ctx.strokeStyle = 'rgba(120,140,190,.7)';
+  ctx.lineWidth = 1.5;
+  for (const side of [-1, 1]) {
+    ctx.save();
+    ctx.translate(side * 8, -6);
+    ctx.rotate(side * (-0.9 + flap * 0.5));
+    ctx.beginPath(); ctx.ellipse(side * 16, 0, 20, 9, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+  // legs
+  ctx.strokeStyle = '#3a2a4a'; ctx.lineWidth = 2;
+  for (const side of [-1, 1]) for (let i = 0; i < 3; i++) {
+    ctx.beginPath(); ctx.moveTo(side * 6, 4 + i * 5); ctx.lineTo(side * 18, 10 + i * 7); ctx.lineTo(side * 20, 18 + i * 7); ctx.stroke();
+  }
+  // body
+  ctx.fillStyle = '#6b3fa0';
+  ctx.beginPath(); ctx.ellipse(0, 10, 13, 17, 0, 0, Math.PI * 2); ctx.fill();
+  // body stripes
+  ctx.strokeStyle = 'rgba(0,0,0,.25)'; ctx.lineWidth = 2;
+  for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(-10, 8 + i * 6); ctx.lineTo(10, 8 + i * 6); ctx.stroke(); }
+  // head
+  ctx.fillStyle = '#7a4db5';
+  ctx.beginPath(); ctx.arc(0, -8, 15, 0, Math.PI * 2); ctx.fill();
+  // eyes
+  for (const side of [-1, 1]) {
+    ctx.fillStyle = '#fff6c2'; ctx.beginPath(); ctx.ellipse(side * 7, -10, 7, 8, 0, 0, Math.PI * 2); ctx.fill();
+    if (f.alive) {
+      ctx.fillStyle = '#2faa3c'; ctx.beginPath(); ctx.arc(side * 7 + side, -10, 3.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(side * 7 + side, -10, 1.6, 0, Math.PI * 2); ctx.fill();
+    } else {
+      ctx.strokeStyle = '#111'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(side * 7 - 3, -13); ctx.lineTo(side * 7 + 3, -7); ctx.moveTo(side * 7 + 3, -13); ctx.lineTo(side * 7 - 3, -7); ctx.stroke();
+    }
+  }
+  // grin
+  ctx.strokeStyle = '#2a1a3a'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(0, -3, 7, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+  // hat
+  ctx.fillStyle = '#c23fa8';
+  ctx.fillRect(-11, -24, 22, 3);
+  ctx.fillRect(-7, -34, 14, 11);
+  ctx.fillStyle = '#5a1a4a'; ctx.fillRect(-7, -27, 14, 3);
+  ctx.restore();
+}
+
+function drawCan(x, y) {
+  // The nozzle tip sits exactly on the cursor; the can hangs down-right of it.
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(-0.35);
+  // can body
+  ctx.fillStyle = '#d7261e';
+  roundRect(-16, 14, 32, 84, 6); ctx.fill();
+  ctx.fillStyle = '#ffd23f';
+  roundRect(-12, 62, 24, 12, 3); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 9px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText('FAST', 0, 40); ctx.fillText('KNOCK', 0, 50); ctx.fillText('DOWN', 0, 59);
+  // shine
+  ctx.fillStyle = 'rgba(255,255,255,.25)'; roundRect(-12, 18, 6, 74, 3); ctx.fill();
+  // cap
+  ctx.fillStyle = '#b81f18';
+  roundRect(-14, 2, 28, 14, 4); ctx.fill();
+  // nozzle
+  ctx.fillStyle = '#eee'; roundRect(-4, -4, 8, 8, 2); ctx.fill();
+  ctx.restore();
+  // target ring at the nozzle
+  ctx.strokeStyle = 'rgba(215,38,30,.9)'; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.arc(x, y, HIT_RADIUS, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x - 6, y); ctx.lineTo(x + 6, y); ctx.moveTo(x, y - 6); ctx.lineTo(x, y + 6); ctx.stroke();
+}
+function roundRect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+
+function drawPuff(p) {
+  const a = 1 - p.t / 0.6;
+  if (a <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = a * 0.8;
+  for (let i = 0; i < 9; i++) {
+    const ang = (i / 9) * Math.PI * 2 + p.t * 2;
+    const r = 10 + p.t * 80;
+    ctx.fillStyle = '#fff';
+    ctx.beginPath(); ctx.arc(p.x + Math.cos(ang) * r * 0.6, p.y + Math.sin(ang) * r * 0.6, 8 + p.t * 20, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawBackground() {
+  ctx.clearRect(0, 0, W, H);
+  // window frame on the wall
+  ctx.save();
+  ctx.globalAlpha = 0.35;
+  ctx.fillStyle = '#cfe8ff';
+  const ww = Math.min(W * 0.4, 360), wh = Math.min(H * 0.45, 300);
+  ctx.fillRect(W * 0.6 - ww / 2, H * 0.12, ww, wh);
+  ctx.strokeStyle = '#8a6a4a'; ctx.lineWidth = 8;
+  ctx.strokeRect(W * 0.6 - ww / 2, H * 0.12, ww, wh);
+  ctx.beginPath(); ctx.moveTo(W * 0.6, H * 0.12); ctx.lineTo(W * 0.6, H * 0.12 + wh);
+  ctx.moveTo(W * 0.6 - ww / 2, H * 0.12 + wh / 2); ctx.lineTo(W * 0.6 + ww / 2, H * 0.12 + wh / 2); ctx.stroke();
+  ctx.restore();
+}
+
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min((now - last) / 1000, 0.05); last = now;
+  if (state === 'playing') { elapsed = now - startTime; updateHud(); }
+  if (fly) updateFly(dt);
+  puffs.forEach(p => p.t += dt); puffs = puffs.filter(p => p.t < 0.6);
+
+  drawBackground();
+  if (fly) drawFly(fly);
+  puffs.forEach(drawPuff);
+  if (state === 'playing' || state === 'won' || state === 'lost') drawCan(mouse.x, mouse.y);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// ---------- Input ----------
+canvas.addEventListener('pointermove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+canvas.addEventListener('pointerdown', e => {
+  mouse.x = e.clientX; mouse.y = e.clientY;
+  spray(e.clientX, e.clientY);
+});
+window.addEventListener('keydown', e => { if (e.code === 'Space' && state === 'playing') { e.preventDefault(); spray(mouse.x, mouse.y); } });
+
+// ---------- Buttons ----------
+$('startBtn').onclick = startGame;
+$('retryBtn').onclick = startGame;
+$('playAgainBtn').onclick = startGame;
+$('skipBtn').onclick = () => openBoard();
+$('boardBtn').onclick = () => openBoard();
+$('loseBoardBtn').onclick = () => openBoard();
+$('refreshBtn').onclick = () => openBoard();
+
+$('nameForm').onsubmit = async e => {
+  e.preventDefault();
+  const name = $('nameInput').value.trim().slice(0, 20);
+  if (!name) return;
+  $('submitBtn').disabled = true;
+  $('submitErr').classList.add('hidden');
+  try {
+    try { localStorage.setItem('flyName', name); } catch (err) {}
+    await submitScore(name, encodeScore(sprays, elapsed));
+    lastSubmittedId = { name, score: encodeScore(sprays, elapsed) };
+    openBoard();
+  } catch (err) {
+    $('submitErr').textContent = "Couldn't save your score. Check your connection and try again.";
+    $('submitErr').classList.remove('hidden');
+    $('submitBtn').disabled = false;
+  }
+};
+
+async function openBoard() {
+  show('boardScreen');
+  const body = $('boardBody');
+  body.innerHTML = '<p>Loading…</p>';
+  try {
+    const rows = await fetchTop();
+    if (!rows.length) { body.innerHTML = '<p>No winners yet. Be the first!</p>'; return; }
+    let highlighted = false;
+    body.innerHTML = '<table><tr><th class="rank">#</th><th>Name</th><th class="r">Sprays</th><th class="r">Time</th></tr>' +
+      rows.map((r, i) => {
+        const { sprays: s, ms } = decodeScore(r.score);
+        const isMe = !highlighted && lastSubmittedId && r.name === lastSubmittedId.name && r.score === lastSubmittedId.score;
+        if (isMe) highlighted = true;
+        return `<tr class="${isMe ? 'me' : ''}"><td class="rank">${i + 1}</td><td>${escapeHtml(r.name)}</td><td class="r">${s}</td><td class="r">${(ms / 1000).toFixed(1)}s</td></tr>`;
+      }).join('') + '</table>';
+  } catch (err) {
+    body.innerHTML = '<p class="err">Couldn\'t load the leaderboard. Check your connection and press Refresh.</p>';
+  }
+}
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+</script>
+</body>
+</html>
