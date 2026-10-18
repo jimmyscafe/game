@@ -368,6 +368,7 @@ function makeFly() {
     w.position.set(s * 0.04, 0.04, -0.01); w.rotation.x = -Math.PI / 2; w.rotation.z = s * 0.3;
     g.add(w); wings.push(w);
   }
+  g.scale.setScalar(1.5); // a bit bigger so they're easier to spot
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
   return { kind: 'fly', mesh: g, wings, alive: true, pos: new THREE.Vector3(), vel: new THREE.Vector3(), target: new THREE.Vector3(), retarget: 0, dart: 0, t: Math.random() * 10 };
 }
@@ -433,7 +434,7 @@ function updateBug(b, dt) {
   }
   b.dart = Math.max(0, b.dart - dt);
 
-  const base = isFly ? 1.6 : 1.1, dartSpeed = isFly ? 4.5 : 3.2;
+  const base = isFly ? 1.0 : 1.1, dartSpeed = isFly ? 2.8 : 3.2;
   const speed = (b.dart > 0 ? dartSpeed : base) + Math.min(sprays, 10) * 0.08;
   _tmp.subVectors(b.target, b.pos); const d = _tmp.length() || 1; _tmp.multiplyScalar(speed * 4 / d);
   const acc = _tmp.clone();
@@ -442,15 +443,15 @@ function updateBug(b, dt) {
   _tmp2.subVectors(b.pos, player.pos); _tmp2.y = 0; const pd = _tmp2.length() || 1;
   const fleeR = isFly ? 2.2 : 1.8;
   if (pd < fleeR) {
-    const k = (fleeR - pd) / fleeR * (isFly ? 22 : 16);
+    const k = (fleeR - pd) / fleeR * (isFly ? 13 : 16);
     acc.addScaledVector(_tmp2, k / pd);
-    if (isFly) acc.y += 4 * (fleeR - pd) / fleeR; // flies climb away
+    if (isFly) acc.y += 2.5 * (fleeR - pd) / fleeR; // flies climb away
     if (b.dart <= 0 && Math.random() < 0.05) b.dart = 0.3;
   }
   // jitter
-  acc.x += (Math.random() - 0.5) * (isFly ? 14 : 6);
-  acc.z += (Math.random() - 0.5) * (isFly ? 14 : 6);
-  if (isFly) acc.y += (Math.random() - 0.5) * 10;
+  acc.x += (Math.random() - 0.5) * (isFly ? 9 : 6);
+  acc.z += (Math.random() - 0.5) * (isFly ? 9 : 6);
+  if (isFly) acc.y += (Math.random() - 0.5) * 7;
 
   b.vel.addScaledVector(acc, dt);
   const vmax = speed * 1.4, v = b.vel.length();
