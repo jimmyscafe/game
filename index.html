@@ -91,23 +91,23 @@
 <div id="crosshair" class="hidden"></div>
 
 <div class="hud hidden" id="hud">
-  <div class="pill">Sprays left: <b id="hudSprays">10</b></div>
+  <div class="pill">Sprays: <b id="hudSprays">0</b></div>
   <div class="pill">Bugs left: <b id="hudBugs">3</b></div>
   <div class="pill">Time: <b id="hudTime">0.0s</b></div>
 </div>
-<div id="hint" class="hidden">Mouse or arrow keys to look · WASD to move · Click or Space to spray · Esc to pause</div>
+<div id="hint" class="hidden">Mouse or arrow keys to look · WASD to move (tap W to auto-walk) · Click or Space to spray · Esc to pause</div>
 
 <!-- Start screen -->
 <div class="overlay" id="startScreen">
   <div class="card">
     <h1>Spray the <span>Fly</span></h1>
     <p class="lead">Two flies and a cockroach have moved into the lounge room. You've got one can of Mortein.</p>
-    <div class="prize">🎟️ Get all three in 10 sprays or fewer to win a ticket to the Vertacy Conference, Port Stephens</div>
+    <div class="prize">🎟️ The lowest spray count on the leaderboard wins a ticket to the Vertacy Conference, Port Stephens</div>
     <ul class="rules">
       <li>Move the mouse to look around. The dot in the middle is where the spray goes. On a trackpad, use the <kbd>←</kbd> <kbd>→</kbd> <kbd>↑</kbd> <kbd>↓</kbd> keys to look instead: laptops ignore the trackpad while you hold a key.</li>
-      <li><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> to walk. The bugs run and fly away when you get close, so corner them.</li>
+      <li><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> to walk, or <b>tap</b> <kbd>W</kbd> once to keep walking hands-free (tap again or press <kbd>S</kbd> to stop). The bugs run and fly away when you get close, so corner them.</li>
       <li>Click (or press <kbd>Space</kbd>) to spray. The spray reaches about two metres in a narrow cone.</li>
-      <li>You get <b>10 sprays</b> for all three bugs. Fewer sprays and a faster time put you higher on the leaderboard.</li>
+      <li>Spray as many times as you like. The game ends when all three bugs are down. <b>Fewer sprays</b> put you higher on the leaderboard; a faster time breaks ties.</li>
     </ul>
     <button id="startBtn">Start</button>
     <button class="secondary" id="boardBtn">Leaderboard</button>
@@ -129,10 +129,7 @@
 <div class="overlay hidden" id="winScreen">
   <div class="card">
     <h2>🎉 All three down!</h2>
-    <div class="ticket">
-      <div class="big">YOU'VE WON A TICKET</div>
-      <div>Vertacy Conference · Port Stephens</div>
-    </div>
+    <p class="lead">Nice work. Here's how you went:</p>
     <div class="stats">
       <div class="stat"><div class="n" id="winSprays">1</div><div class="l">sprays</div></div>
       <div class="stat"><div class="n" id="winTime">0.0s</div><div class="l">time</div></div>
@@ -146,18 +143,6 @@
       </div>
     </form>
     <p class="err hidden" id="submitErr"></p>
-  </div>
-</div>
-
-<!-- Lose screen -->
-<div class="overlay hidden" id="loseScreen">
-  <div class="card">
-    <h2>😩 Out of spray</h2>
-    <p class="lead" id="loseText">Ten sprays and the bugs are still here. No ticket this time.</p>
-    <div class="row">
-      <button id="retryBtn">Try again</button>
-      <button class="secondary" id="loseBoardBtn">Leaderboard</button>
-    </div>
   </div>
 </div>
 
@@ -181,11 +166,10 @@ import * as THREE from "https://cdnjs.cloudflare.com/ajax/libs/three.js/0.160.0/
 // security only lets players read scores and insert new ones.
 const SUPABASE_URL = 'https://pfuqcbwcghhafrqwtpsa.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_7x8BPTrstbqE2_d75kO58g_exqjqLgi';
-const MAX_SPRAYS = 10;
 
 // A single integer stores both sprays and time, so lower is better:
-// score = sprays * 100000 + milliseconds (capped at 99.999s).
-const encodeScore = (sprays, ms) => sprays * 100000 + Math.min(Math.round(ms), 99999);
+// score = sprays * 100000 + milliseconds (sprays capped at 99, time at 99.999s).
+const encodeScore = (sprays, ms) => Math.min(sprays, 99) * 100000 + Math.min(Math.round(ms), 99999);
 const decodeScore = s => ({ sprays: Math.floor(s / 100000), ms: s % 100000 });
 
 async function sbFetch(path, opts = {}) {
@@ -206,7 +190,7 @@ const submitScore = (name, score) => sbFetch('scores', {
 
 // ---------- DOM ----------
 const $ = id => document.getElementById(id);
-const screens = ['startScreen', 'pauseScreen', 'winScreen', 'loseScreen', 'boardScreen'];
+const screens = ['startScreen', 'pauseScreen', 'winScreen', 'boardScreen'];
 function show(id) {
   screens.forEach(s => $(s).classList.toggle('hidden', s !== id));
   const inGame = id === null;
@@ -450,7 +434,7 @@ function updateBug(b, dt) {
   b.dart = Math.max(0, b.dart - dt);
 
   const base = isFly ? 1.6 : 1.1, dartSpeed = isFly ? 4.5 : 3.2;
-  const speed = (b.dart > 0 ? dartSpeed : base) + sprays * 0.08;
+  const speed = (b.dart > 0 ? dartSpeed : base) + Math.min(sprays, 10) * 0.08;
   _tmp.subVectors(b.target, b.pos); const d = _tmp.length() || 1; _tmp.multiplyScalar(speed * 4 / d);
   const acc = _tmp.clone();
 
@@ -497,8 +481,8 @@ function updateBug(b, dt) {
 }
 
 // ---------- Player ----------
-const player = { pos: new THREE.Vector3(0, EYE, 1.2), yaw: Math.PI, pitch: 0, keys: {} };
-function resetPlayer() { player.pos.set(0, EYE, 1.2); player.yaw = Math.PI; player.pitch = 0; player.keys = {}; }
+const player = { pos: new THREE.Vector3(0, EYE, 1.2), yaw: Math.PI, pitch: 0, keys: {}, autoWalk: false, wDownAt: 0 };
+function resetPlayer() { player.pos.set(0, EYE, 1.2); player.yaw = Math.PI; player.pitch = 0; player.keys = {}; player.autoWalk = false; }
 function updatePlayer(dt) {
   const k = player.keys;
   // arrow keys turn the camera, so trackpad users can look while walking
@@ -509,7 +493,7 @@ function updatePlayer(dt) {
   if (k.ArrowUp) player.pitch = Math.min(1.4, player.pitch + TILT * dt);
   if (k.ArrowDown) player.pitch = Math.max(-1.4, player.pitch - TILT * dt);
   let fx = 0, fz = 0;
-  if (k.KeyW) fz -= 1;
+  if (k.KeyW || player.autoWalk) fz -= 1;
   if (k.KeyS) fz += 1;
   if (k.KeyA) fx -= 1;
   if (k.KeyD) fx += 1;
@@ -583,7 +567,6 @@ function spray() {
   updateHud();
   const left = bugs.filter(b => b.alive).length;
   if (left === 0) { state = 'won'; setTimeout(showWin, 1000); }
-  else if (sprays >= MAX_SPRAYS) { state = 'lost'; setTimeout(() => showLose(left), 800); }
 }
 function updatePuffs(dt) {
   for (let i = puffs.length - 1; i >= 0; i--) {
@@ -600,7 +583,7 @@ function updatePuffs(dt) {
 
 // ---------- Game flow ----------
 function updateHud() {
-  $('hudSprays').textContent = MAX_SPRAYS - sprays;
+  $('hudSprays').textContent = sprays;
   $('hudBugs').textContent = bugs.filter(b => b.alive).length;
   $('hudTime').textContent = (elapsed / 1000).toFixed(1) + 's';
 }
@@ -619,11 +602,6 @@ function showWin() {
   $('submitErr').classList.add('hidden'); $('submitBtn').disabled = false;
   try { $('nameInput').value = localStorage.getItem('flyName') || ''; } catch (e) {}
   show('winScreen'); $('nameInput').focus();
-}
-function showLose(left) {
-  lockWanted = false; document.exitPointerLock && document.exitPointerLock();
-  $('loseText').textContent = `Ten sprays gone and ${left === 1 ? 'one bug is' : left + ' bugs are'} still in the room. No ticket this time.`;
-  show('loseScreen');
 }
 
 // ---------- Input ----------
@@ -659,29 +637,35 @@ document.addEventListener('mousemove', e => {
   player.pitch = Math.max(-1.4, Math.min(1.4, player.pitch - my * 0.0022));
 });
 function pause() {
-  lockWanted = false;
+  lockWanted = false; player.autoWalk = false; player.keys = {};
   show('pauseScreen');
   if (document.pointerLockElement === canvas) document.exitPointerLock();
 }
 const MOVE_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'];
 window.addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return;
+  if (!e.repeat) {
+    // a quick tap of W toggles hands-free walking; S, A or D cancel it
+    if (e.code === 'KeyW') player.wDownAt = performance.now();
+    if (e.code === 'KeyS' || e.code === 'KeyA' || e.code === 'KeyD') player.autoWalk = false;
+  }
   player.keys[e.code] = true;
   if (e.code === 'Escape' && state === 'playing') pause();
   if (state === 'playing' && MOVE_KEYS.includes(e.code)) e.preventDefault(); // stop the page scrolling
   if (e.code === 'Space' && state === 'playing' && !e.repeat) spray();
 });
-window.addEventListener('keyup', e => { player.keys[e.code] = false; });
+window.addEventListener('keyup', e => {
+  player.keys[e.code] = false;
+  if (e.code === 'KeyW') player.autoWalk = performance.now() - player.wDownAt < 250 ? !player.autoWalk : false;
+});
 window.addEventListener('blur', () => { player.keys = {}; });
 
 $('startBtn').onclick = startGame;
-$('retryBtn').onclick = startGame;
 $('playAgainBtn').onclick = startGame;
 $('resumeBtn').onclick = () => { show(null); tryLock(); };
 $('quitBtn').onclick = () => { state = 'idle'; lockWanted = false; show('startScreen'); };
 $('skipBtn').onclick = openBoard;
 $('boardBtn').onclick = openBoard;
-$('loseBoardBtn').onclick = openBoard;
 $('refreshBtn').onclick = openBoard;
 
 $('nameForm').onsubmit = async e => {
@@ -714,7 +698,7 @@ async function openBoard() {
         const { sprays: s, ms } = decodeScore(r.score);
         const isMe = !highlighted && lastSubmitted && r.name === lastSubmitted.name && r.score === lastSubmitted.score;
         if (isMe) highlighted = true;
-        return `<tr class="${isMe ? 'me' : ''}"><td class="rank">${i + 1}</td><td>${escapeHtml(r.name)}</td><td class="r">${s}</td><td class="r">${(ms / 1000).toFixed(1)}s</td></tr>`;
+        return `<tr class="${isMe ? 'me' : ''}"><td class="rank">${i + 1}</td><td>${escapeHtml(r.name)}</td><td class="r">${s >= 99 ? '99+' : s}</td><td class="r">${(ms / 1000).toFixed(1)}s</td></tr>`;
       }).join('') + '</table>';
   } catch (err) {
     body.innerHTML = '<p class="err">Couldn\'t load the leaderboard. Check your connection and press Refresh.</p>';

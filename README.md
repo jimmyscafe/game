@@ -1,17 +1,17 @@
 # Spray the Fly
 
-A single-file 3D browser game. Two flies and a cockroach are loose in a small lounge room (couch, TV on a stand, a plant in the corner). You walk around in first person with a can of Mortein and spray them. Get all three in 10 sprays or fewer to win a ticket to the Vertacy Conference, Port Stephens. Winners can put their name on an online leaderboard.
+A single-file 3D browser game. Two flies and a cockroach are loose in a small lounge room (couch, TV on a stand, a plant in the corner). You walk around in first person with a can of Mortein and spray them. Sprays are unlimited; the game ends when all three are down, and the leaderboard ranks everyone by how few sprays they used. The lowest count at the end of the competition wins a ticket to the Vertacy Conference, Port Stephens. The game itself never tells a player they have won, so the organiser decides.
 
 ## Play
 
 Open `index.html` in any modern browser, or visit the GitHub Pages link for this repository. You need a keyboard and a mouse or trackpad, and an internet connection (the 3D engine, three.js, loads from a CDN).
 
 - Move the mouse to look around, or use the arrow keys. The white dot in the middle is where the spray goes. Laptops ignore the trackpad while a key is held, so trackpad users should look with the arrow keys while walking.
-- WASD to walk, Shift to run, Esc to pause.
+- WASD to walk, Shift to run, Esc to pause. Tap W once to keep walking hands-free (tap again, or press S, A or D, to stop), which frees a trackpad for looking around.
 - Click or press Space to spray. The spray reaches about two metres in a narrow cone.
 - The bugs flee when you get close: flies climb away, the cockroach scurries across the floor. Corner them.
-- You have 10 sprays for all three bugs. Get them all and you win; run out and you miss out.
-- The leaderboard ranks winners by fewest sprays, then fastest time.
+- Sprays are unlimited. The game ends when all three bugs are down.
+- The leaderboard ranks everyone by fewest sprays, then fastest time.
 
 ## Leaderboard
 
@@ -20,7 +20,7 @@ Scores live in a Supabase project that belongs only to this game. The game talks
 The `scores` table has `name` and `score` columns. `score` is a single integer that packs both numbers so that lower is better:
 
 ```
-score = sprays * 100000 + milliseconds   (time capped at 99.999s)
+score = sprays * 100000 + milliseconds   (sprays capped at 99, time at 99.999s)
 ```
 
 For example `200750` means 2 sprays in 0.75 seconds.
@@ -52,7 +52,6 @@ Then set `SUPABASE_URL` and `SUPABASE_KEY` near the top of the script in `index.
 
 Everything is in `index.html`. Useful knobs near the top of the script:
 
-- `MAX_SPRAYS`: how many sprays a player gets (default 10).
 - `SPRAY_RANGE` and `SPRAY_HALF_ANGLE`: how far the spray reaches (2.2 m) and how wide the cone is (9°). Bigger is easier.
 - In `updateBug`, `base` and `dartSpeed` set how fast flies and the cockroach move, and `fleeR` how close you can get before they run.
 - `ROOM` sets the room size; the furniture positions follow from it.
