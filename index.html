@@ -329,17 +329,78 @@ const SOLIDS = [
 ];
 
 // ---------- Spray can in hand ----------
+// The label is drawn on a canvas and wrapped around the can. It's our own
+// drawing in the style of the real thing, not the product photo.
+function makeCanLabel() {
+  const c = document.createElement('canvas'); c.width = 1024; c.height = 1024;
+  const x = c.getContext('2d');
+  x.fillStyle = '#d7261e'; x.fillRect(0, 0, c.width, c.height);
+  // the label occupies the middle of the texture (u 0.25..0.75); the can
+  // body is rotated so that stretch faces the player
+  const L = 256, W = 512, cx = L + W / 2;
+  // subtle darker stripes at the label edges, like the real print
+  x.fillStyle = 'rgba(0,0,0,.08)'; x.fillRect(L - 8, 0, 8, c.height); x.fillRect(L + W, 0, 8, c.height);
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  // yellow lightning bolts framing the wordmark
+  x.fillStyle = '#ffd23f';
+  const bolt = (sx, dir) => {
+    x.beginPath();
+    x.moveTo(sx, 150); x.lineTo(sx + dir * 70, 250); x.lineTo(sx + dir * 40, 250); x.lineTo(sx + dir * 110, 380);
+    x.lineTo(sx + dir * 60, 300); x.lineTo(sx + dir * 85, 300); x.closePath(); x.fill();
+  };
+  bolt(L + 40, 1); bolt(L + W - 40, -1);
+  x.fillStyle = '#fff'; x.font = 'bold 22px sans-serif';
+  x.fillText('READ SAFETY DIRECTIONS', cx, 120);
+  // wordmark
+  x.save(); x.translate(cx, 215); x.rotate(-0.06);
+  x.font = 'italic 900 118px sans-serif';
+  x.lineWidth = 14; x.strokeStyle = '#7a0f0a'; x.strokeText('Mortein', 0, 0);
+  x.fillStyle = '#fff'; x.fillText('Mortein', 0, 0);
+  x.restore();
+  // FAST KNOCKDOWN badge
+  x.fillStyle = '#ffd23f';
+  x.beginPath(); x.moveTo(cx - 150, 300); x.lineTo(cx + 150, 300); x.lineTo(cx + 120, 400); x.lineTo(cx - 120, 400); x.closePath(); x.fill();
+  x.fillStyle = '#d7261e'; x.font = 'italic 900 56px sans-serif'; x.fillText('FAST', cx, 335);
+  x.font = 'italic 900 30px sans-serif'; x.fillText('KNOCKDOWN', cx, 378);
+  // starburst with bug silhouettes
+  x.fillStyle = '#ffd23f';
+  x.beginPath();
+  for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2, r = i % 2 ? 150 : 100; x.lineTo(cx + Math.cos(a) * r, 500 + Math.sin(a) * r * 0.45); }
+  x.closePath(); x.fill();
+  x.fillStyle = '#1a0a05';
+  const bug = (bx, by, sc) => { x.beginPath(); x.ellipse(bx, by, 22 * sc, 11 * sc, 0.3, 0, Math.PI * 2); x.fill();
+    x.lineWidth = 3 * sc; x.strokeStyle = '#1a0a05';
+    for (let i = -1; i <= 1; i++) { x.beginPath(); x.moveTo(bx + i * 10 * sc, by); x.lineTo(bx + i * 14 * sc, by + 18 * sc); x.stroke(); x.beginPath(); x.moveTo(bx + i * 10 * sc, by); x.lineTo(bx + i * 14 * sc, by - 18 * sc); x.stroke(); } };
+  bug(cx - 70, 505, 1.1); bug(cx + 10, 495, 1.4); bug(cx + 85, 505, 1);
+  // product line
+  x.fillStyle = '#fff'; x.font = '900 46px sans-serif';
+  x.fillText('MULTI', cx, 610); x.fillText('INSECT', cx, 655);
+  x.fillStyle = '#ffd23f'; x.font = '900 32px sans-serif'; x.fillText('KILLER', cx, 698);
+  // KILLS IN 1 SPRAY box
+  x.fillStyle = '#ffd23f'; x.fillRect(cx - 200, 760, 400, 70);
+  x.fillStyle = '#111'; x.font = '900 36px sans-serif'; x.fillText('KILLS IN 1 SPRAY', cx, 796);
+  x.fillStyle = '#fff'; x.font = 'bold 22px sans-serif'; x.fillText('300g NET', cx, 900);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  return tex;
+}
 const can = new THREE.Group();
-const canBody = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.17, 16), mat(0xd7261e, { roughness: 0.4 }));
+const canBody = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.17, 32), new THREE.MeshStandardMaterial({ map: makeCanLabel(), roughness: 0.35, metalness: 0.1 }));
+canBody.rotation.y = Math.PI; // label centre (u = 0.5) faces +z, i.e. the player
 can.add(canBody);
-const band = new THREE.Mesh(new THREE.CylinderGeometry(0.0305, 0.0305, 0.03, 16), mat(0xffd23f, { roughness: 0.4 }));
-band.position.y = -0.03; can.add(band);
-const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.026, 0.03, 0.03, 16), mat(0xb81f18));
-cap.position.y = 0.1; can.add(cap);
-const nozzle = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.02, 0.012), mat(0xeeeeee));
-nozzle.position.set(0, 0.125, 0); can.add(nozzle);
-can.position.set(0.22, -0.2, -0.4);
-can.rotation.set(0.25, 0, -0.15);
+const steel = mat(0xcfcfcf, { roughness: 0.3, metalness: 0.8 });
+const rimBottom = new THREE.Mesh(new THREE.CylinderGeometry(0.0295, 0.028, 0.008, 32), steel);
+rimBottom.position.y = -0.088; can.add(rimBottom);
+const shoulder = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.03, 0.018, 32), mat(0xd7261e, { roughness: 0.35 }));
+shoulder.position.y = 0.094; can.add(shoulder);
+const rimTop = new THREE.Mesh(new THREE.CylinderGeometry(0.024, 0.024, 0.004, 32), steel);
+rimTop.position.y = 0.105; can.add(rimTop);
+const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.019, 0.024, 0.03, 32), mat(0xc8221a, { roughness: 0.4 }));
+cap.position.y = 0.122; can.add(cap);
+const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.006, 12), mat(0x222222));
+nozzle.rotation.x = Math.PI / 2; nozzle.position.set(0, 0.128, -0.019); can.add(nozzle);
+can.position.set(0.19, -0.14, -0.4);
+can.rotation.set(0.2, -0.4, -0.12);
 camera.add(can);
 scene.add(camera);
 
@@ -513,7 +574,7 @@ function updatePlayer(dt) {
   camera.rotation.x = player.pitch;
   // can bob
   const moving = fx || fz;
-  can.position.y = -0.2 + (moving ? Math.sin(performance.now() / 120) * 0.008 : 0);
+  can.position.y = -0.14 + (moving ? Math.sin(performance.now() / 120) * 0.008 : 0);
 }
 const PR = 0.25; // player radius
 function moveWithCollision(dx, dz) {
@@ -579,7 +640,7 @@ function updatePuffs(dt) {
     if (p.t > 0.7) { scene.remove(p.mesh); p.mesh.material.dispose(); puffs.splice(i, 1); }
   }
   canKick = Math.max(0, canKick - dt * 6);
-  can.rotation.x = 0.25 - canKick * 0.25;
+  can.rotation.x = 0.2 - canKick * 0.25;
 }
 
 // ---------- Game flow ----------
