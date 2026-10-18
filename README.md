@@ -1,6 +1,6 @@
 # Spray the Fly
 
-A single-file 3D browser game. Two flies and a cockroach are loose in a small lounge room (couch, TV on a stand, a plant in the corner). You walk around in first person with a can of Mortein and spray them. Sprays are unlimited; the game ends when all three are down, and the leaderboard ranks everyone by how few sprays they used. The lowest count at the end of the competition wins a ticket to the Vertacy Conference, Port Stephens. The game itself never tells a player they have won, so the organiser decides.
+A single-file 3D browser game. Two flies and a cockroach are loose in a small lounge room (couch, TV on a stand, a plant in the corner). You walk around in first person with a can of Mortein and spray them. Sprays are unlimited; the game ends when all three are down, and the leaderboard ranks everyone by how few sprays they used. The lowest count at the end of the competition wins a prize at the Vestacy Conference, Port Stephens. The game itself never tells a player they have won, so the organiser decides.
 
 ## Play
 
