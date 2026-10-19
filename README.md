@@ -1,6 +1,6 @@
 # Spray the Fly
 
-A single-file 3D browser game. Two flies and a cockroach are loose in a small lounge room (couch, TV on a stand, a plant in the corner). You walk around in first person with a can of Mortein and spray them. Sprays are unlimited; the game ends when all three are down, and the leaderboard ranks everyone by how few sprays they used. The lowest count at the end of the competition wins a prize at the Vestacy Conference, Port Stephens. The game itself never tells a player they have won, so the organiser decides.
+A single-file 3D browser game. Four flies (two purple, two faster green ones) and two cockroaches (one brown, one fast black one that hides under the couch) are loose in a small lounge room (couch, TV on a stand, a plant in the corner). You walk around in first person with a can of Mortein and spray them. Sprays are unlimited; the game ends when all six are down, and the leaderboard ranks everyone by how few sprays they used. The lowest count at the end of the competition wins a prize at the Vestacy Conference, Port Stephens. The game itself never tells a player they have won, so the organiser decides.
 
 ## Play
 
@@ -10,7 +10,7 @@ Open `index.html` in any modern browser, or visit the GitHub Pages link for this
 - WASD to walk, Shift to run, Esc to pause. Tap W once to keep walking hands-free (tap again, or press S, A or D, to stop), which frees a trackpad for looking around.
 - Click or press Space to spray. The spray reaches about two metres in a narrow cone.
 - The bugs flee when you get close: flies climb away, the cockroach scurries across the floor. Corner them.
-- Sprays are unlimited. The game ends when all three bugs are down.
+- Sprays are unlimited. The game ends when all six bugs are down.
 - The leaderboard ranks everyone by fewest sprays, then fastest time.
 
 ## Leaderboard
@@ -53,6 +53,6 @@ Then set `SUPABASE_URL` and `SUPABASE_KEY` near the top of the script in `index.
 Everything is in `index.html`. Useful knobs near the top of the script:
 
 - `SPRAY_RANGE` and `SPRAY_HALF_ANGLE`: how far the spray reaches (2.2 m) and how wide the cone is (9°). Bigger is easier.
-- In `updateBug`, `base` and `dartSpeed` set how fast flies and the cockroach move, and `fleeR` how close you can get before they run.
+- The species table (`PURPLE_FLY`, `GREEN_FLY`, `BROWN_ROACH`, `BLACK_ROACH`) sets each bug's colours, speed (`base`, `dart`), how close you can get before it runs (`fleeR`), how hard it runs (`fleeK`), whether it picks smart escape routes (`smart`), and how often a roach hides under the couch (`hideChance`).
 - `ROOM` sets the room size; the furniture positions follow from it.
-- `resetBugs` decides how many flies and cockroaches spawn.
+- `resetBugs` decides how many of each species spawn.

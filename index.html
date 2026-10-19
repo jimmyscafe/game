@@ -92,7 +92,7 @@
 
 <div class="hud hidden" id="hud">
   <div class="pill">Sprays: <b id="hudSprays">0</b></div>
-  <div class="pill">Bugs left: <b id="hudBugs">3</b></div>
+  <div class="pill">Bugs left: <b id="hudBugs">6</b></div>
   <div class="pill">Time: <b id="hudTime">0.0s</b></div>
 </div>
 <div id="hint" class="hidden">Mouse or arrow keys to look · WASD to move (tap W to auto-walk) · Click or Space to spray · Esc to pause</div>
@@ -101,13 +101,13 @@
 <div class="overlay" id="startScreen">
   <div class="card">
     <h1>Spray the <span>Fly</span></h1>
-    <p class="lead">Two flies and a cockroach have moved into the lounge room. You've got one can of Mortein.</p>
+    <p class="lead">Four flies and two cockroaches have moved into the lounge room. You've got one can of Mortein.</p>
     <div class="prize">🎟️ The lowest spray count on the leaderboard wins a prize at the Vestacy Conference, Port Stephens!!</div>
     <ul class="rules">
       <li>Use mouse to aim or the four arrow keys <kbd>←</kbd> <kbd>↑</kbd> <kbd>↓</kbd> <kbd>→</kbd> to aim.</li>
       <li><kbd>W</kbd> <kbd>A</kbd> <kbd>S</kbd> <kbd>D</kbd> to walk, or <b>tap</b> <kbd>W</kbd> once to keep walking hands-free (tap again or press <kbd>S</kbd> to stop). The bugs run and fly away when you get close, so corner them.</li>
       <li>Click (or press <kbd>Space</kbd>) to spray. The spray reaches about two metres in a narrow cone.</li>
-      <li>Spray as many times as you like. The game ends when all three bugs are down. <b>Fewer sprays</b> put you higher on the leaderboard; a faster time breaks ties.</li>
+      <li>Spray as many times as you like. The game ends when all six bugs are down. <b>Fewer sprays</b> put you higher on the leaderboard; a faster time breaks ties.</li>
     </ul>
     <button id="startBtn">Start</button>
     <button class="secondary" id="boardBtn">Leaderboard</button>
@@ -128,7 +128,7 @@
 <!-- Win screen -->
 <div class="overlay hidden" id="winScreen">
   <div class="card">
-    <h2>🎉 All three down!</h2>
+    <h2>🎉 All six down!</h2>
     <p class="lead">Nice work. Here's how you went:</p>
     <div class="stats">
       <div class="stat"><div class="n" id="winSprays">1</div><div class="l">sprays</div></div>
@@ -274,7 +274,7 @@ shade.position.set(0, ROOM.h - 0.2, 0); scene.add(shade);
 // furniture: couch against the back wall
 const couchMat = mat(0x3f5f8a), cushionMat = mat(0x4c6f9c);
 const COUCH = { x: 0, z: -ROOM.d / 2 + 0.5, w: 2.2, d: 0.95 };
-box(COUCH.w, 0.42, COUCH.d, couchMat, COUCH.x, 0.21, COUCH.z);                 // base
+box(COUCH.w, 0.32, COUCH.d, couchMat, COUCH.x, 0.26, COUCH.z);                 // base (10 cm gap underneath)
 box(COUCH.w, 0.55, 0.22, couchMat, COUCH.x, 0.7, COUCH.z - COUCH.d / 2 + 0.11); // back
 box(0.22, 0.3, COUCH.d, couchMat, COUCH.x - COUCH.w / 2 + 0.11, 0.57, COUCH.z); // arms
 box(0.22, 0.3, COUCH.d, couchMat, COUCH.x + COUCH.w / 2 - 0.11, 0.57, COUCH.z);
@@ -406,21 +406,21 @@ scene.add(camera);
 
 // ---------- Bugs ----------
 const bugs = [];
-function makeFly() {
+function makeFly(look, stats) {
   const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 10), mat(0x6b3fa0));
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.045, 12, 10), mat(look.body));
   body.scale.set(0.8, 1, 1.3); g.add(body);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.038, 12, 10), mat(0x7a4db5));
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.038, 12, 10), mat(look.head));
   head.position.set(0, 0.015, 0.06); g.add(head);
   for (const s of [-1, 1]) {
     const eye = new THREE.Mesh(new THREE.SphereGeometry(0.017, 10, 8), mat(0xfff6c2));
     eye.position.set(s * 0.02, 0.025, 0.085); g.add(eye);
-    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.008, 8, 6), mat(0x2faa3c));
+    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.008, 8, 6), mat(look.pupil));
     pupil.position.set(s * 0.02, 0.025, 0.1); g.add(pupil);
   }
-  const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.03, 12), mat(0xc23fa8));
+  const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.03, 12), mat(look.hat));
   hat.position.set(0, 0.06, 0.06); g.add(hat);
-  const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.006, 12), mat(0xc23fa8));
+  const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.032, 0.006, 12), mat(look.hat));
   brim.position.set(0, 0.046, 0.06); g.add(brim);
   const wingMat = new THREE.MeshStandardMaterial({ color: 0xcfe0ff, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
   const wings = [];
@@ -431,15 +431,15 @@ function makeFly() {
   }
   g.scale.setScalar(1.5); // a bit bigger so they're easier to spot
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
-  return { kind: 'fly', mesh: g, wings, alive: true, pos: new THREE.Vector3(), vel: new THREE.Vector3(), target: new THREE.Vector3(), retarget: 0, dart: 0, t: Math.random() * 10 };
+  return { kind: 'fly', stats, mesh: g, wings, alive: true, pos: new THREE.Vector3(), vel: new THREE.Vector3(), target: new THREE.Vector3(), retarget: 0, dart: 0, hide: 0, t: Math.random() * 10 };
 }
-function makeRoach() {
+function makeRoach(look, stats) {
   const g = new THREE.Group();
-  const body = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 10), mat(0x5a2d0c, { roughness: 0.4 }));
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.05, 12, 10), mat(look.body, { roughness: 0.4 }));
   body.scale.set(0.7, 0.4, 1.4); body.position.y = 0.02; g.add(body);
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.025, 10, 8), mat(0x3f1e07));
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.025, 10, 8), mat(look.head));
   head.position.set(0, 0.02, 0.07); g.add(head);
-  const legMat = mat(0x3f1e07);
+  const legMat = mat(look.head);
   for (const s of [-1, 1]) for (let i = 0; i < 3; i++) {
     const leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.004, 0.004), legMat);
     leg.position.set(s * 0.05, 0.008, -0.03 + i * 0.03); leg.rotation.y = s * (0.5 - i * 0.4); leg.rotation.z = s * 0.4;
@@ -450,7 +450,7 @@ function makeRoach() {
     ant.position.set(s * 0.012, 0.03, 0.12); ant.rotation.y = s * 0.5; g.add(ant);
   }
   g.traverse(o => { if (o.isMesh) o.castShadow = true; });
-  return { kind: 'roach', mesh: g, alive: true, pos: new THREE.Vector3(), vel: new THREE.Vector3(), target: new THREE.Vector3(), retarget: 0, dart: 0, t: 0 };
+  return { kind: 'roach', stats, mesh: g, alive: true, pos: new THREE.Vector3(), vel: new THREE.Vector3(), target: new THREE.Vector3(), retarget: 0, dart: 0, hide: 0, t: 0 };
 }
 
 const AIR = { minY: 0.5, maxY: ROOM.h - 0.3, pad: 0.3 };
@@ -463,19 +463,44 @@ function randomFloorPoint(v) {
   return v;
 }
 
+// Species. base/dart are speeds in m/s; fleeR is how close you can get
+// before they run, fleeK how hard; smart means they pick escape routes
+// away from you instead of random spots; hideChance is how often a roach
+// heads for the gap under the couch.
+const PURPLE_FLY = { look: { body: 0x6b3fa0, head: 0x7a4db5, pupil: 0x2faa3c, hat: 0xc23fa8 },
+  stats: { base: 1.0, dart: 2.8, fleeR: 2.2, fleeK: 13, climb: 2.5, jitter: 9, jitterY: 7, smart: false } };
+const GREEN_FLY = { look: { body: 0x2f8f3a, head: 0x3aa848, pupil: 0xd7261e, hat: 0x1b4f8a },
+  stats: { base: 1.6, dart: 4.0, fleeR: 3.0, fleeK: 22, climb: 3.5, jitter: 11, jitterY: 8, smart: true } };
+const BROWN_ROACH = { look: { body: 0x5a2d0c, head: 0x3f1e07 },
+  stats: { base: 1.1, dart: 3.2, fleeR: 1.8, fleeK: 16, jitter: 6, smart: false, hideChance: 0.15 } };
+const BLACK_ROACH = { look: { body: 0x141414, head: 0x050505 },
+  stats: { base: 1.9, dart: 4.8, fleeR: 2.4, fleeK: 26, jitter: 7, smart: true, hideChance: 0.55 } };
+
+// the strip of floor under the couch, where roaches can hide
+const UNDER_COUCH = { x0: COUCH.x - COUCH.w / 2 + 0.15, x1: COUCH.x + COUCH.w / 2 - 0.15, z0: COUCH.z - COUCH.d / 2 + 0.1, z1: COUCH.z + COUCH.d / 2 - 0.1 };
+const underCouchPoint = v => v.set(UNDER_COUCH.x0 + Math.random() * (UNDER_COUCH.x1 - UNDER_COUCH.x0), 0.02, UNDER_COUCH.z0 + Math.random() * (UNDER_COUCH.z1 - UNDER_COUCH.z0));
+// of a handful of random spots, the one furthest from the player
+function farPoint(v, pick) {
+  let best = -1;
+  for (let i = 0; i < 6; i++) { pick(_tmp3); const d = _tmp3.distanceTo(player.pos); if (d > best) { best = d; v.copy(_tmp3); } }
+  return v;
+}
+
 function resetBugs() {
   bugs.forEach(b => scene.remove(b.mesh)); bugs.length = 0;
-  for (let i = 0; i < 2; i++) {
-    const f = makeFly();
+  for (const sp of [PURPLE_FLY, PURPLE_FLY, GREEN_FLY, GREEN_FLY]) {
+    const f = makeFly(sp.look, sp.stats);
     randomAirPoint(f.pos); f.target.copy(f.pos); scene.add(f.mesh); bugs.push(f);
   }
-  const r = makeRoach();
+  const r = makeRoach(BROWN_ROACH.look, BROWN_ROACH.stats);
   r.pos.set(1.2, 0.02, -0.8); r.target.copy(r.pos); scene.add(r.mesh); bugs.push(r);
+  const k = makeRoach(BLACK_ROACH.look, BLACK_ROACH.stats);
+  underCouchPoint(k.pos); k.target.copy(k.pos); k.hide = 2; scene.add(k.mesh); bugs.push(k);
   // nothing spawns right in the player's face
   bugs.forEach(b => { if (b.pos.distanceTo(player.pos) < 1.5) b.pos.x += 2; });
 }
 
-const _tmp = new THREE.Vector3(), _tmp2 = new THREE.Vector3();
+const _tmp = new THREE.Vector3(), _tmp2 = new THREE.Vector3(), _tmp3 = new THREE.Vector3();
 function updateBug(b, dt) {
   const m = b.mesh;
   if (!b.alive) {
@@ -487,32 +512,44 @@ function updateBug(b, dt) {
   }
   b.t += dt;
   b.retarget -= dt;
-  const isFly = b.kind === 'fly';
+  const isFly = b.kind === 'fly', st = b.stats;
+  _tmp2.subVectors(b.pos, player.pos); _tmp2.y = 0; const pd = _tmp2.length() || 1;
+  const threatened = pd < st.fleeR;
+  b.hide = Math.max(0, b.hide - dt);
   if (b.retarget <= 0) {
-    isFly ? randomAirPoint(b.target) : randomFloorPoint(b.target);
-    b.retarget = isFly ? 0.5 + Math.random() * 1.2 : 0.8 + Math.random() * 1.6;
+    const pickRandom = isFly ? randomAirPoint : randomFloorPoint;
+    if (!isFly && st.hideChance && (b.hide > 0 || Math.random() < st.hideChance * (threatened ? 2 : 1))) {
+      // roach heads for the gap under the couch and waits there a while
+      underCouchPoint(b.target); b.retarget = 1.5 + Math.random() * 2.5; if (b.hide <= 0) b.hide = b.retarget;
+    } else if (st.smart && threatened) {
+      farPoint(b.target, pickRandom); b.retarget = 0.4 + Math.random() * 0.5;
+    } else {
+      pickRandom(b.target);
+      b.retarget = isFly ? 0.5 + Math.random() * 1.2 : 0.8 + Math.random() * 1.6;
+    }
     if (Math.random() < 0.3) b.dart = isFly ? 0.3 : 0.5;
   }
   b.dart = Math.max(0, b.dart - dt);
 
-  const base = isFly ? 1.0 : 1.1, dartSpeed = isFly ? 2.8 : 3.2;
-  const speed = (b.dart > 0 ? dartSpeed : base) + Math.min(sprays, 10) * 0.08;
+  const speed = (b.dart > 0 ? st.dart : st.base) + Math.min(sprays, 10) * 0.08;
   _tmp.subVectors(b.target, b.pos); const d = _tmp.length() || 1; _tmp.multiplyScalar(speed * 4 / d);
   const acc = _tmp.clone();
 
   // flee the player: the closer you are, the harder they run
-  _tmp2.subVectors(b.pos, player.pos); _tmp2.y = 0; const pd = _tmp2.length() || 1;
-  const fleeR = isFly ? 2.2 : 1.8;
-  if (pd < fleeR) {
-    const k = (fleeR - pd) / fleeR * (isFly ? 13 : 16);
+  if (threatened) {
+    const k = (st.fleeR - pd) / st.fleeR * st.fleeK;
     acc.addScaledVector(_tmp2, k / pd);
-    if (isFly) acc.y += 2.5 * (fleeR - pd) / fleeR; // flies climb away
-    if (b.dart <= 0 && Math.random() < 0.05) b.dart = 0.3;
+    if (isFly) acc.y += st.climb * (st.fleeR - pd) / st.fleeR; // flies climb away
+    if (st.smart) { // dodge sideways too, so backing straight off isn't the only move
+      const side = (b.t % 2 < 1 ? 1 : -1) * k * 0.6;
+      acc.x += -_tmp2.z / pd * side; acc.z += _tmp2.x / pd * side;
+    }
+    if (b.dart <= 0 && Math.random() < (st.smart ? 0.12 : 0.05)) b.dart = 0.3;
   }
   // jitter
-  acc.x += (Math.random() - 0.5) * (isFly ? 9 : 6);
-  acc.z += (Math.random() - 0.5) * (isFly ? 9 : 6);
-  if (isFly) acc.y += (Math.random() - 0.5) * 7;
+  acc.x += (Math.random() - 0.5) * st.jitter;
+  acc.z += (Math.random() - 0.5) * st.jitter;
+  if (isFly) acc.y += (Math.random() - 0.5) * st.jitterY;
 
   b.vel.addScaledVector(acc, dt);
   const vmax = speed * 1.4, v = b.vel.length();
